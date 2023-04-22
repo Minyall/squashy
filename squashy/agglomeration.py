@@ -8,6 +8,7 @@ from squashy.metrics import AgglomeratorMetrics
 # TODO make resumable similar to decomposition to allow a more nuanced expansion of representation
 # and the ability of users to experiment with parameters.
 
+# TODO why is graph size smaller than n assigned?
 class GraphAgglomerator:
     degree_label = 'agglom_degree'
     final_assignments: Dict[int, int]
