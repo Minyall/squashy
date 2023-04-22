@@ -14,6 +14,7 @@ class KCoreIdentifier:
         self.max_cores = max_cores
         self.metrics = DecomposerMetrics(self.database)
         self.filter_attr = filter_attr
+        self.calc_degree_label = 'calc_degree'
         self.degree_label = degree_attr
         self.orientation = orientation
 
@@ -35,12 +36,10 @@ class KCoreIdentifier:
             raise Exception(f'Error - Label {self.core_label} still present after reset.')
 
     def reset_assignments(self):
-        self.database.remove_node_attr(self.node_label, self.filter_attr)
-        self.database.remove_node_attr(self.node_label, self.degree_label)
-        if not self.database.node_count(self.node_label, where=f'WHERE n.{self.filter_attr} IS NOT NULL') == 0:
-            raise Exception(f'Error - Filter attribute {self.filter_attr} still present after reset.')
-        if not self.database.node_count(self.node_label, where=f'WHERE n.{self.degree_label} IS NOT NULL') == 0:
-            raise Exception(f'Error - Filter attribute {self.degree_label} still present after reset.')
+        for label in (self.filter_attr, self.degree_label, self.calc_degree_label):
+            self.database.remove_node_attr(self.node_label, label)
+            if not self.database.node_count(self.node_label, where=f'WHERE n.{label} IS NOT NULL') == 0:
+                raise Exception(f'Error - Filter attribute {label} still present after reset.')
 
     def reset(self):
         self.reset_assignments()
@@ -87,6 +86,13 @@ class KCoreIdentifier:
         self._update_n_remaining()
         self._update_min_max_degree()
 
+    def get_average_degree(self):
+        if not self.database.attr_exists(self.node_label,self.calc_degree_label):
+            self.database.set_degree(node_label=self.node_label, rel_label=self.rel_label,
+                                     target_label=self.target_label,set_property=self.calc_degree_label,
+                                     orientation=self.orientation)
+        avg_degree_query = f'MATCH (n:{self.node_label}) RETURN avg(n.{self.calc_degree_label}) AS avg_degree'
+        return self.database.read(avg_degree_query)[0]['avg_degree']
 
     def identify_core_nodes(self):
 
