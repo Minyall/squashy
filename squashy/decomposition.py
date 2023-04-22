@@ -27,7 +27,8 @@ class KCoreIdentifier:
         self.degree_filter = f"WHERE s.{self.filter_attr} IS NULL AND t.{self.filter_attr} IS NULL"
         self.database.set_index('CORE')
         self.database.set_index('CORE', 'id')
-        # self.metrics.graph_size = self.database.node_count(self.node_label)
+        self._graph_size = self.database.node_count(self.node_label)
+        self.metrics.graph_size = self._graph_size
         # self.metrics.cores_identified = self.database.node_count(self.core_label)
 
     def reset_cores(self):
@@ -45,6 +46,8 @@ class KCoreIdentifier:
         self.reset_assignments()
         self.reset_cores()
         self.metrics = self.metrics.reset_metrics()
+        self.metrics.graph_size = self._graph_size
+
 
     def _prune(self) -> int:
         match_q = f"MATCH (n:{self.node_label}) WHERE n.{self.degree_label} < {self.k}"

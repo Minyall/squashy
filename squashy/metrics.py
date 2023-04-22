@@ -5,7 +5,6 @@ from plotly import express as px
 
 from mini_memgraph import Memgraph
 
-#TODO why is graph_size 0?
 class Metrics:
     node_label: str
     _major_fields: list
