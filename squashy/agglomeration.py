@@ -132,8 +132,11 @@ class GraphAgglomerator:
                     self._track_assignments(id_list)
                     current_assignments = self._organize_assignments(core, current_assignments, caught_nodes)
                     self.metrics.stop_timer()
+                    # TODO consider how to align metrics being recorded to the db and assignments being saved to ensure
+                    # that resuming is robust and we are resuming from the exact same point.
                     self.metrics.new_record()
                     bar.update(1)
+                self.save_assignments()
 
                 current_assignments = self._deduplicate_assignments(current_assignments)
                 current_assignments = self._select_closest_core(current_assignments)
