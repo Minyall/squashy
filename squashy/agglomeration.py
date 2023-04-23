@@ -8,7 +8,7 @@ from squashy.metrics import AgglomeratorMetrics
 # TODO make resumable similar to decomposition to allow a more nuanced expansion of representation
 # and the ability of users to experiment with parameters.
 
-# TODO why is graph size smaller than n assigned?
+
 class GraphAgglomerator:
     degree_label = 'agglom_degree'
     final_assignments: Dict[int, int]
@@ -88,7 +88,7 @@ class GraphAgglomerator:
             total_nodes_where = f"WHERE u.{self.degree_label} >= {self.minimum_degree}"
         else:
             total_nodes_where = ""
-        total_nodes_match = f'MATCH (u:{self._node_label})-[:{self._rel_label}]->(:{self._node_label})'
+        total_nodes_match = f'MATCH (u:{self._node_label})-[:{self._rel_label}]-(:{self._node_label})'
         total_nodes_with = f'WITH DISTINCT u'
         total_nodes_return = 'RETURN count(u) AS n_nodes'
         total_nodes_query = ' '.join([total_nodes_match, total_nodes_where, total_nodes_with, total_nodes_return])
@@ -106,7 +106,6 @@ class GraphAgglomerator:
         n_hops = len(hop_options)
         with tqdm(total=len(self.cores)*n_hops) as bar:
             for hop in hop_options:
-
                 for i, core in enumerate(self.cores, start=1):
                     self._update_metrics()
                     self.metrics.hop = hop
