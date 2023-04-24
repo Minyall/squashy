@@ -20,13 +20,15 @@ class GraphAgglomerator:
     _represents_label = 'REPRESENTS'
     _hops = (1, 1)
 
-    def __init__(self, database: Memgraph, node_label: str, rel_label: str, core_node_label: str = 'CORE', orientation:str='undirected'):
+    def __init__(self, database: Memgraph, node_label: str, rel_label: str, core_node_label: str = 'CORE', weight:str=None,
+                 orientation: str = 'undirected'):
 
         self.database = database
         self.metrics = AgglomeratorMetrics(self.database)
         self.set_node_label(node_label)
         self.set_rel_label(rel_label)
         self.set_core_label(core_node_label)
+        self.weight = weight
         self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
         self.final_assignments = {c: c for c in self.cores}
         self.orientation = orientation
@@ -117,10 +119,10 @@ class GraphAgglomerator:
                     self.metrics.start_timer()
                     caught_nodes = self._find_represented_nodes(core, min_hops=hop, max_hops=hop)
                     current_assignments = self._organize_assignments(core, current_assignments, caught_nodes)
-                    self._merge_assignments(current_assignments)
                     self.metrics.stop_timer()
                     self.metrics.new_record()
                     bar.update(1)
+                self._merge_assignments(current_assignments)
 
         return report
 
@@ -140,7 +142,7 @@ class GraphAgglomerator:
             self.database.set_degree(self._node_label, self._rel_label, set_property=self.degree_label, orientation=self.orientation)
             self.degree_attr_exists = True
 
-    def _find_represented_nodes(self, core_id: int, min_hops:int=1, max_hops:int=6):
+    def _find_represented_nodes(self, core_id: int, min_hops:int=1, max_hops:int=6) -> List[Dict]:
         if self.minimum_degree is not None:
             where_min_degree = f"WHERE u.{self.degree_label} >= {self.minimum_degree}"
             path_degree_limiter = f' (r, u | u.{self.degree_label} >= {self.minimum_degree})'
@@ -148,30 +150,38 @@ class GraphAgglomerator:
             where_min_degree = ""
             path_degree_limiter = ""
 
-        match = f"MATCH (c:{self._core_label} {{id:$id_val}})" \
+        match = f"MATCH p=(c:{self._core_label} {{id:$id_val}})" \
                 f"{self._left_endpoint}[r:{self._rel_label} *{min_hops}..{max_hops}{path_degree_limiter}]{self._right_endpoint}" \
-                f"(u:{self._node_label})"
-        with_ = "WITH DISTINCT u"
-        ret = "RETURN u.id AS id"
-        query = ' '.join([match, where_min_degree, with_, ret])
-        result = self.database.read(query, id_val=core_id)
-        ids = [res['id'] for res in result]
+                f"(:{self._node_label})"
+        with_ = "WITH last(nodes(p)) AS end_node"
+        ret = "RETURN end_node.id AS id"
 
-        return ids
+        if self.weight is not None:
+            with_ = with_ + f", reduce(total_weight=0, n IN relationships(p) | total_weight + n.{self.weight}) AS total_weight "
+            ret = ret + ", total_weight AS path_weight"
 
-    def _organize_assignments(self, core_id: int, assignments: Dict[int, List[int]], nodes_to_organize:List[int]) -> Dict[int, List[int]]:
+            query = ' '.join([match, where_min_degree, with_, ret])
+            node_data = self.database.read(query, id_val=core_id)
+        else:
+            query = ' '.join([match, where_min_degree, with_, ret])
+            result = self.database.read(query, id_val=core_id)
+            node_data = [{'id':res['id'], 'path_weight':0} for res in result]
+
+        return node_data
+
+    def _organize_assignments(self, core_id: int, assignments: Dict[int, Dict], nodes_to_organize:List[Dict]) -> Dict[int, Dict]:
         for node in nodes_to_organize:
-            if node not in assignments:
-                assignments[node] = [core_id]
+            if node['id'] not in assignments:
+                assignments[node['id']] = {core_id: node['path_weight']}
             else:
-                assignments[node].append(core_id)
+                assignments[node['id']].update({core_id: node['path_weight']})
         return assignments
 
     def _merge_assignments(self, assignments: Dict):
         to_assign = {node: cores for node, cores in assignments.items() if node not in self.final_assignments}
         # if not len(to_assign) == (len(assignments) + 1 - len(self.final_assignments)):
         #     raise Exception
-        resolved_nodes = {node: random.choice(cores) if len(cores) > 1 else cores[0] for node, cores in
+        resolved_nodes = {node: max(cores, key=cores.get) for node, cores in
                           to_assign.items()}
         self.final_assignments.update(resolved_nodes)
 
