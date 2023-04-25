@@ -42,6 +42,7 @@ class GraphAgglomerator:
             self._right_endpoint = '->'
 
         self.total_nodes = self.calculate_graph_size()
+        self._progress_tracker = set()
 
     def _set_label(self, attr: str, label: str):
         if not isinstance(label, str):
@@ -101,7 +102,7 @@ class GraphAgglomerator:
 
     def _update_metrics(self):
         self.metrics.graph_size = self.total_nodes
-        self.metrics.n_assigned = len(self.final_assignments)
+        self.metrics.n_assigned = len(self._progress_tracker)
         self.metrics.ratio = round(self.metrics.n_assigned / self.total_nodes, 4)
 
     def agglomerate(self):
@@ -120,6 +121,8 @@ class GraphAgglomerator:
 
                     self.metrics.start_timer()
                     caught_nodes = self._find_represented_nodes(core, min_hops=hop, max_hops=hop)
+                    id_list = [node['id'] for node in caught_nodes]
+                    self._track_assignments(id_list)
                     current_assignments = self._organize_assignments(core, current_assignments, caught_nodes)
                     self.metrics.stop_timer()
                     self.metrics.new_record()
@@ -186,6 +189,9 @@ class GraphAgglomerator:
         resolved_nodes = {node: max(cores, key=cores.get) for node, cores in
                           to_assign.items()}
         self.final_assignments.update(resolved_nodes)
+
+    def _track_assignments(self, node_ids: List) -> None:
+        self._progress_tracker.update(node_ids)
 
     @property
     def core_label(self):
