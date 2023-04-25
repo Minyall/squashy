@@ -18,10 +18,11 @@ class GraphAgglomerator:
     _rel_label = None
     _core_label = 'CORE'
     _represents_label = 'REPRESENTS'
-    _hops = (1, 1)
+    _hops = (1, 3)
 
-    def __init__(self, database: Memgraph, node_label: str, rel_label: str, core_node_label: str = 'CORE', weight:str=None,
-                 orientation: str = 'undirected'):
+    def __init__(self, database: Memgraph, node_label: str,
+                 rel_label: str, core_node_label: str = 'CORE', weight:str=None,
+                 orientation: str = 'undirected', min_hops: int = 1, max_hops: int = 3):
 
         self.database = database
         self.metrics = AgglomeratorMetrics(self.database)
@@ -29,6 +30,7 @@ class GraphAgglomerator:
         self.set_rel_label(rel_label)
         self.set_core_label(core_node_label)
         self.weight = weight
+        self.set_hop_range(min_hops=min_hops, max_hops=max_hops)
         self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
         self.final_assignments = {c: c for c in self.cores}
         self.orientation = orientation
