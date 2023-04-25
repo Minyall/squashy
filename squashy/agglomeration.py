@@ -50,6 +50,13 @@ class GraphAgglomerator:
         self.total_nodes = self.calculate_graph_size()
         self._progress_tracker = set()
 
+        # TODO make resumable by identifying which hops in the meta nodes do not equal total cores.
+        # TODO remove all represents edges with the incomplete hop
+        # TODO return list of all nodes already assigned to preload the final_assignments attribute
+        # TODO Reduce hop range in response
+        # TODO Have better exception handling for Keyboard Interrupt
+
+
     def _set_label(self, attr: str, label: str):
         if not isinstance(label, str):
             raise ValueError
