@@ -76,9 +76,8 @@ class GraphAgglomerator:
         self._minimum_degree = degree
         self._calculate_degree(recalculate)
 
-    # TODO improve so that passing single number will ensure it runs through whole range up to that nbumber
     def set_hop_range(self, max_hops: int, min_hops: int = None):
-        hop_range = (max_hops, max_hops)
+        hop_range = (1, max_hops)
         if min_hops is not None:
             hop_range = (min_hops, max_hops)
         if not all(isinstance(x, int) for x in hop_range):
