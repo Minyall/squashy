@@ -37,7 +37,7 @@ class GraphAgglomerator:
         self.final_assignments = {c: c for c in self.cores}
         self.final_assignments = self._reshape_assignments(self.final_assignments)
         self.final_assignments = self._add_distance(self.final_assignments)
-        self.save_assignments()
+        self._save_assignments()
 
         self.orientation = orientation
         self._left_endpoint = '-'
@@ -141,11 +141,11 @@ class GraphAgglomerator:
                 current_assignments = self._add_distance(current_assignments)
                 self.final_assignments.update(current_assignments)
 
-                self.save_assignments()
+                self._save_assignments()
 
         return report
 
-    def save_assignments(self):
+    def _save_assignments(self):
         edge_list = [{'target': node, 'source': data['core'], 'distance': data['distance']} for node, data in self.final_assignments.items() if data['distance'] == self.current_hop]
         self.database.write_edges(edge_list,
                                   source_label=self._core_label,
