@@ -306,3 +306,20 @@ class GraphAgglomerator:
     @property
     def minimum_degree(self):
         return self._minimum_degree
+
+
+class MetaRelate:
+    def __init__(self, database: Memgraph, node_label: str, core_label: str = 'CORE',
+                 represents_label: str = 'REPRESENTS', weight:str=None,
+                 orientation: str = 'undirected'):
+        self.db = database
+        self.node = node_label
+        self.core = core_label
+        self.represents = represents_label
+        self.weight = weight
+
+        # May be unneeded
+        self.orientation = orientation
+
+
+        
