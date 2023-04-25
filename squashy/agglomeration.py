@@ -11,7 +11,7 @@ from squashy.metrics import AgglomeratorMetrics
 
 class GraphAgglomerator:
     degree_label = 'agglom_degree'
-    final_assignments: Dict[int, int]
+    final_assignments: Dict
     _minimum_degree = None
     degree_attr_exists: bool
     _node_label = None
@@ -31,8 +31,14 @@ class GraphAgglomerator:
         self.set_core_label(core_node_label)
         self.weight = weight
         self.set_hop_range(min_hops=min_hops, max_hops=max_hops)
+        self.current_hop = 0
+
         self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
         self.final_assignments = {c: c for c in self.cores}
+        self.final_assignments = self._reshape_assignments(self.final_assignments)
+        self.final_assignments = self._add_distance(self.final_assignments)
+        self.save_assignments()
+
         self.orientation = orientation
         self._left_endpoint = '-'
         self._right_endpoint = '-'
@@ -111,6 +117,7 @@ class GraphAgglomerator:
         n_hops = len(hop_options)
         with tqdm(total=len(self.cores)*n_hops) as bar:
             for hop in hop_options:
+                self.current_hop = hop
                 for i, core in enumerate(self.cores, start=1):
                     self._update_metrics()
                     self.metrics.hop = hop
@@ -127,16 +134,24 @@ class GraphAgglomerator:
                     self.metrics.stop_timer()
                     self.metrics.new_record()
                     bar.update(1)
-                self._merge_assignments(current_assignments)
+
+                current_assignments = self._deduplicate_assignments(current_assignments)
+                current_assignments = self._select_closest_core(current_assignments)
+                current_assignments = self._reshape_assignments(current_assignments)
+                current_assignments = self._add_distance(current_assignments)
+                self.final_assignments.update(current_assignments)
+
+                self.save_assignments()
 
         return report
 
     def save_assignments(self):
-        edge_list = [{'target': node, 'source': core} for node, core in self.final_assignments.items()]
+        edge_list = [{'target': node, 'source': data['core'], 'distance': data['distance']} for node, data in self.final_assignments.items() if data['distance'] == self.current_hop]
         self.database.write_edges(edge_list,
                                   source_label=self._core_label,
                                   edge_label=self._represents_label,
-                                  target_label=self._node_label)
+                                  target_label=self._node_label,
+                                  add_attributes=['distance'])
 
     def reset(self):
         self.database.wipe_relationships(self._represents_label)
@@ -174,7 +189,7 @@ class GraphAgglomerator:
 
         return node_data
 
-    def _organize_assignments(self, core_id: int, assignments: Dict[int, Dict], nodes_to_organize:List[Dict]) -> Dict[int, Dict]:
+    def _organize_assignments(self, core_id: int, assignments: Dict[int, Dict], nodes_to_organize: List[Dict]) -> Dict[int, Dict]:
         for node in nodes_to_organize:
             if node['id'] not in assignments:
                 assignments[node['id']] = {core_id: node['path_weight']}
@@ -182,13 +197,19 @@ class GraphAgglomerator:
                 assignments[node['id']].update({core_id: node['path_weight']})
         return assignments
 
-    def _merge_assignments(self, assignments: Dict):
-        to_assign = {node: cores for node, cores in assignments.items() if node not in self.final_assignments}
-        # if not len(to_assign) == (len(assignments) + 1 - len(self.final_assignments)):
-        #     raise Exception
-        resolved_nodes = {node: max(cores, key=cores.get) for node, cores in
-                          to_assign.items()}
-        self.final_assignments.update(resolved_nodes)
+    def _deduplicate_assignments(self, assignments: Dict) -> Dict:
+        return {node: cores for node, cores in assignments.items() if node not in self.final_assignments}
+
+    def _select_closest_core(self, assignments: Dict) -> Dict:
+        return {node: max(cores, key=cores.get) for node, cores in assignments.items()}
+
+    def _reshape_assignments(self, assignments: Dict) -> Dict:
+        return {node: dict(core=core) for node, core in assignments.items()}
+
+    def _add_distance(self, assignments: Dict) -> Dict:
+        for _, data in assignments.items():
+            data.update(dict(distance=self.current_hop))
+        return assignments
 
     def _track_assignments(self, node_ids: List) -> None:
         self._progress_tracker.update(node_ids)
