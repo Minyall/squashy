@@ -22,14 +22,14 @@ class GraphAgglomerator:
     current_hop: int = 0
 
     def __init__(self, database: Memgraph, node_label: str,
-                 rel_label: str, core_node_label: str = 'CORE', weight:str=None,
+                 rel_label: str, core_label: str = 'CORE', weight:str=None,
                  orientation: str = 'undirected', min_hops: int = 1, max_hops: int = 3):
 
         self.database = database
         self.metrics = AgglomeratorMetrics(self.database)
         self.set_node_label(node_label)
         self.set_rel_label(rel_label)
-        self.set_core_label(core_node_label)
+        self.set_core_label(core_label)
         self.weight = weight
         self.set_hop_range(min_hops=min_hops, max_hops=max_hops)
         self.current_hop = 0
