@@ -27,6 +27,7 @@ class GraphAgglomerator:
         self.set_rel_label(rel_label)
         self.set_core_label(core_label)
         self.weight = weight
+        self._original_hop_options = (min_hops, max_hops)
         self.set_hop_range(min_hops=min_hops, max_hops=max_hops)
 
         self.orientation = orientation
@@ -60,6 +61,8 @@ class GraphAgglomerator:
 
     def _initialize(self):
         self.current_hop = 0
+        self.set_hop_range(min_hops=self._original_hop_options[0],
+                           max_hops=self._original_hop_options[1])
         self.final_assignments = {c: c for c in self.cores}
         self.final_assignments = self._reshape_assignments(self.final_assignments)
         self.final_assignments = self._add_distance(self.final_assignments)
