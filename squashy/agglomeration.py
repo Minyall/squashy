@@ -1,12 +1,8 @@
-import random
 from typing import List, Dict
 
 from tqdm.auto import tqdm
 from mini_memgraph import Memgraph
 from squashy.metrics import AgglomeratorMetrics
-
-# TODO make resumable similar to decomposition to allow a more nuanced expansion of representation
-# and the ability of users to experiment with parameters.
 
 
 class GraphAgglomerator:
@@ -32,13 +28,6 @@ class GraphAgglomerator:
         self.set_core_label(core_label)
         self.weight = weight
         self.set_hop_range(min_hops=min_hops, max_hops=max_hops)
-        self.current_hop = 0
-
-        self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
-        self.final_assignments = {c: c for c in self.cores}
-        self.final_assignments = self._reshape_assignments(self.final_assignments)
-        self.final_assignments = self._add_distance(self.final_assignments)
-        self._save_assignments()
 
         self.orientation = orientation
         self._left_endpoint = '-'
@@ -48,15 +37,69 @@ class GraphAgglomerator:
         elif orientation == 'out':
             self._right_endpoint = '->'
 
+        self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
         self.total_nodes = self.calculate_graph_size()
-        self._progress_tracker = set()
 
-        # TODO make resumable by identifying which hops in the meta nodes do not equal total cores.
-        # TODO remove all represents edges with the incomplete hop
-        # TODO return list of all nodes already assigned to preload the final_assignments attribute
-        # TODO Reduce hop range in response
-        # TODO Have better exception handling for Keyboard Interrupt
+        if self._is_resuming():
+            self._resume()
+        else:
+            self._initialize()
 
+    def _is_resuming(self) -> bool:
+        return self.metrics.pass_ > 0
+
+    def elegant_exit(func):
+        def report_and_exit(self, *args, **kwargs):
+            try:
+                func(self, *args, **kwargs)
+            except KeyboardInterrupt:
+                print(self.metrics)
+                print(f'Agglomeration incomplete. Use .resume() to restart hop {self.current_hop}')
+                self.database._disconnect()
+        return report_and_exit
+
+    def _initialize(self):
+        self.current_hop = 0
+        self.final_assignments = {c: c for c in self.cores}
+        self.final_assignments = self._reshape_assignments(self.final_assignments)
+        self.final_assignments = self._add_distance(self.final_assignments)
+        self._save_assignments()
+        self._progress_tracker = set(self.cores)
+
+    def _resume(self):
+        complete = self.list_complete_hops()
+        hop_options = self._get_hop_options()
+        remaining_hops = [hop for hop in hop_options if hop not in complete]
+        start_hop = min(remaining_hops)
+        self.set_minimum_hop(start_hop)
+        self.drop_incomplete_hop_rels(start_hop)
+        self.final_assignments = self.load_assignments()
+        self._progress_tracker = set(self.final_assignments.keys())
+        self.metrics.local_pass_ = 0
+
+    def list_complete_hops(self) -> List[int]:
+        n_cores = len(self.cores)
+        metric_node_label = self.metrics.node_label
+        counts = self.database.read(f'MATCH (n:{metric_node_label}) RETURN n.hop AS hop, count(n) AS freq')
+        complete = [record['hop'] for record in counts if record['freq'] == n_cores]
+        return complete
+
+    def drop_incomplete_hop_rels(self, max_hop_val: int):
+        self.database.write(
+            query=f'MATCH ()-[r:{self.represents_label}]-() '
+                  f'WHERE r.distance >= $max_hop_val '
+                  f'DELETE r',
+            max_hop_val=max_hop_val
+        )
+
+    def load_assignments(self):
+        assignments = self.database.read(
+            query=f"MATCH (c:{self.core_label})-[r:{self.represents_label}]->(n:{self.node_label})"
+                  " RETURN c.id AS core, n.id AS node, r.distance AS distance"
+        )
+        return {record['node']:dict(
+            distance=record['distance'],
+            core=record['core']) for record in assignments}
 
     def _set_label(self, attr: str, label: str):
         if not isinstance(label, str):
@@ -93,13 +136,20 @@ class GraphAgglomerator:
         self._minimum_degree = degree
         self._calculate_degree(recalculate)
 
-    def set_hop_range(self, max_hops: int, min_hops: int = None):
-        hop_range = (1, max_hops)
-        if min_hops is not None:
-            hop_range = (min_hops, max_hops)
+    def set_hop_range(self, max_hops: int = 3, min_hops: int = 1):
+        hop_range = (min_hops, max_hops)
         if not all(isinstance(x, int) for x in hop_range):
             raise TypeError(f'Any passed argument should be an integer - {hop_range=}')
         self._hops = hop_range
+
+    def set_minimum_hop(self, min_hop:int):
+        max_hop = self._hops[1]
+        self.set_hop_range(min_hops=min_hop, max_hops=max_hop)
+
+    def set_maximum_hop(self, max_hop: int):
+        min_hop = self._hops[0]
+        self.set_hop_range(min_hops=min_hop, max_hops=max_hop)
+
 
     def calculate_graph_size(self):
         if self.minimum_degree is not None:
@@ -119,9 +169,13 @@ class GraphAgglomerator:
         self.metrics.n_assigned = len(self._progress_tracker)
         self.metrics.ratio = round(self.metrics.n_assigned / self.total_nodes, 4)
 
+    def _get_hop_options(self):
+        return list(range(self._hops[0], self._hops[1]+1))
+
+    @elegant_exit
     def agglomerate(self):
         current_assignments = {}
-        hop_options = list(range(self._hops[0], self._hops[1]+1))
+        hop_options = self._get_hop_options()
         n_hops = len(hop_options)
         with tqdm(total=len(self.cores)*n_hops) as bar:
             for hop in hop_options:
