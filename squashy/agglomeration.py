@@ -73,9 +73,11 @@ class GraphAgglomerator:
         start_hop = min(remaining_hops)
         self.set_minimum_hop(start_hop)
         self.drop_incomplete_hop_rels(start_hop)
+        self.drop_incomplete_hop_metrics(start_hop)
         self.final_assignments = self.load_assignments()
         self._progress_tracker = set(self.final_assignments.keys())
         self.metrics.local_pass_ = 0
+        self.metrics.load_metrics()
 
     def list_complete_hops(self) -> List[int]:
         n_cores = len(self.cores)
@@ -91,6 +93,10 @@ class GraphAgglomerator:
                   f'DELETE r',
             max_hop_val=max_hop_val
         )
+
+    def drop_incomplete_hop_metrics(self, max_hop_val: int):
+        self.database.write(query=f'MATCH (n:META:{self.metrics.node_label}) WHERE n.hop >= $max_hop_val DELETE n',
+                            max_hop_val=max_hop_val)
 
     def load_assignments(self):
         assignments = self.database.read(
@@ -149,7 +155,6 @@ class GraphAgglomerator:
     def set_maximum_hop(self, max_hop: int):
         min_hop = self._hops[0]
         self.set_hop_range(min_hops=min_hop, max_hops=max_hop)
-
 
     def calculate_graph_size(self):
         if self.minimum_degree is not None:
@@ -218,6 +223,7 @@ class GraphAgglomerator:
     def reset(self):
         self.database.wipe_relationships(self._represents_label)
         self.metrics = self.metrics.reset_metrics()
+        self._initialize()
 
     def _calculate_degree(self, force=False):
         if not self.degree_attr_exists or force:
