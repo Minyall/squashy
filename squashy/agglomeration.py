@@ -55,7 +55,9 @@ class GraphAgglomerator:
                 func(self, *args, **kwargs)
             except KeyboardInterrupt:
                 print(self.metrics)
-                print(f'Agglomeration incomplete. Use .resume() to restart hop {self.current_hop}')
+                print('Agglomeration incomplete.')
+                print(f'Use .agglomerate() to restart hop {self.current_hop}.')
+                print('Use .reset() to restart from the beginning')
                 self.database._disconnect()
         return report_and_exit
 
