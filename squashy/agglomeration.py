@@ -19,6 +19,7 @@ class GraphAgglomerator:
     _core_label = 'CORE'
     _represents_label = 'REPRESENTS'
     _hops = (1, 3)
+    current_hop: int = 0
 
     def __init__(self, database: Memgraph, node_label: str,
                  rel_label: str, core_node_label: str = 'CORE', weight:str=None,
