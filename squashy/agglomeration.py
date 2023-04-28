@@ -309,11 +309,13 @@ class GraphAgglomerator:
 
 
 class MetaRelate:
-    def __init__(self, database: Memgraph, node_label: str, core_label: str = 'CORE',
+    def __init__(self, database: Memgraph, node_label: str, rel_label:str, core_label: str = 'CORE',
                  represents_label: str = 'REPRESENTS', weight:str=None,
                  orientation: str = 'undirected'):
         self.db = database
         self.node = node_label
+        self.rel = rel_label
+        self.meta_rel = "META_" + rel_label
         self.core = core_label
         self.represents = represents_label
         self.weight = weight
@@ -321,5 +323,44 @@ class MetaRelate:
         # May be unneeded
         self.orientation = orientation
 
+    def _build_query(self):
+        match_statement = f"MATCH (source:{self.core})-[:{self.represents}]->(n:{self.node})-[r:{self.rel}]->" \
+                          f"(:{self.node})<-[:{self.represents}]-(target:{self.core})"
+        no_self_loop = "WHERE source <> target"
+        with_distinct = "WITH DISTINCT source, target,"
+        if self.weight is None:
+            aggregate_weight = "count(r) AS weight,"
+            set_weight = "mr.weight = weight, "
+        else:
+            aggregate_weight = f'sum(r.{self.weight}) AS weight, min(r.{self.weight}) AS min_weight, max(r.{self.weight}) AS max_weight,'
+            set_weight = "mr.weight = weight, mr.min_weight = min_weight, mr.max_weight = max_weight"
 
-        
+        count_distinct = "count(n) AS n_distinct"
+
+        create_rel = f"MERGE (source)-[mr:{self.meta_rel}]->(target)"
+        set_properties = f"ON CREATE SET mr.n_distinct = n_distinct, mr.score = weight * n_distinct, {set_weight}"
+        return_count = "RETURN count(mr) AS n_rels"
+
+        query = ' '.join([
+            match_statement,
+            no_self_loop,
+            with_distinct,
+            aggregate_weight,
+            count_distinct,
+            create_rel,
+            set_properties,
+            return_count
+        ])
+        return query
+
+    def build_meta_relations(self):
+        res = self.db.write(self.query)
+        n_created = res[0]['n_rels']
+        return n_created
+
+    def reset(self):
+        self.db.write(f'MATCH ()-[r:{self.meta_rel}]-() DELETE r')
+
+    @property
+    def query(self):
+        return self._build_query()
