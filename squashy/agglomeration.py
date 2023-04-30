@@ -382,22 +382,26 @@ class MetaRelate:
         sorted_weights = sorted(self.get_meta_rel_weights('score'))
         kneedle = KneeLocator(range(len(sorted_weights)), sorted_weights,online=online, direction='increasing', curve='convex', **kwargs)
         self._knee = kneedle.knee_y
-        return self._knee
+        return float(self._knee)
 
     def reset(self):
         self.db.write(f'MATCH ()-[r:{self.meta_rel}]-() DELETE r')
 
     def get_core_edge_list(self, unfiltered=False):
-
+        if not self.count_meta_relations() > 0:
+            raise Exception(f'No meta_relations of type {self.meta_rel} detected. Plese .build_ meta_relations() first.')
         match_query = f'MATCH (source:{self.core})-[r:{self.meta_rel}]->(target:{self.core})'
         where_query = 'WHERE r.score >= $cutoff'
-        return_query = "RETURN source.id, target.id, r.weight AS weight, r.n_distinct AS n_distinct, r.score AS score"
+        return_query = "RETURN source.id AS source, target.id AS target, r.weight AS weight, r.n_distinct AS n_distinct, r.score AS score"
         query_sequence = [match_query, where_query, return_query]
         if unfiltered:
             query_sequence.pop(1)
         query = ' '.join(query_sequence)
         result = self.db.read(query, cutoff=self.cutoff_score)
         return result
+
+    def count_meta_relations(self) -> int:
+        return self.db.read(f'MATCH ()-[r:{self.meta_rel}]->() RETURN count(r) AS n_rels')[0]['n_rels']
 
     @property
     def query(self):
