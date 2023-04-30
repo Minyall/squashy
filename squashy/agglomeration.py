@@ -1,6 +1,8 @@
 from typing import List, Dict
 
 from tqdm.auto import tqdm
+from kneed import KneeLocator
+import plotly.express as px
 from mini_memgraph import Memgraph
 from squashy.metrics import AgglomeratorMetrics
 
@@ -309,6 +311,8 @@ class GraphAgglomerator:
 
 
 class MetaRelate:
+    _knee = None
+
     def __init__(self, database: Memgraph, node_label: str, rel_label:str, core_label: str = 'CORE',
                  represents_label: str = 'REPRESENTS', weight:str=None,
                  orientation: str = 'undirected'):
@@ -358,9 +362,38 @@ class MetaRelate:
         n_created = res[0]['n_rels']
         return n_created
 
+    def get_meta_rel_weights(self, score_type: str = 'score'):
+        result = self.db.read(f'MATCH ()-[r:{self.meta_rel}]-() WITH DISTINCT r RETURN r.{score_type} AS weight')
+        return [record['weight'] for record in result]
+
+    def score_ecdf(self, markers=True, ecdfnorm=None, **kwargs):
+        knee = self.cutoff_score
+        weights = sorted(self.get_meta_rel_weights(score_type='score'))
+
+        fig = px.ecdf(x=weights, title=f'Weight ECDF: {self.meta_rel.title()}',
+                      ecdfnorm=ecdfnorm, labels=dict(x='score'), markers=markers, **kwargs)
+
+        y_point = len(weights) - weights[::-1].index(knee)
+        fig.add_hline(y=y_point, fillcolor='green')
+
+        return fig
+
+    def calculate_cutoff_score(self, online=True, **kwargs):
+        sorted_weights = sorted(self.get_meta_rel_weights('score'))
+        kneedle = KneeLocator(range(len(sorted_weights)), sorted_weights,online=online, direction='increasing', curve='convex', **kwargs)
+        self._knee = kneedle.knee_y
+        return self._knee
+
     def reset(self):
         self.db.write(f'MATCH ()-[r:{self.meta_rel}]-() DELETE r')
 
     @property
     def query(self):
         return self._build_query()
+
+    @property
+    def cutoff_score(self):
+        if self._knee is None:
+            self._knee = self.calculate_cutoff_score()
+        return self._knee
+
