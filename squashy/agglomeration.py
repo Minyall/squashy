@@ -216,8 +216,12 @@ class GraphAgglomerator:
                 self.final_assignments.update(current_assignments)
 
                 self._save_assignments()
-
+            self._calculate_n_subnodes()
         return report
+
+    def _calculate_n_subnodes(self):
+        self.database.set_degree(self.core_label, self.represents_label, self.node_label, set_property='n_subnodes',
+                                 orientation='out')
 
     def _save_assignments(self):
         edge_list = [{'target': node, 'source': data['core'], 'distance': data['distance']} for node, data in self.final_assignments.items() if data['distance'] == self.current_hop]
@@ -309,7 +313,7 @@ class GraphAgglomerator:
     def minimum_degree(self):
         return self._minimum_degree
 
-
+# TODO add option to choose whether to score by ratio of distinct users, or simply number of distinct users.
 class MetaRelate:
     _knee = None
 
@@ -342,7 +346,7 @@ class MetaRelate:
         count_distinct = "count(n) AS n_distinct"
 
         create_rel = f"MERGE (source)-[mr:{self.meta_rel}]->(target)"
-        set_properties = f"ON CREATE SET mr.n_distinct = n_distinct, mr.score = weight * n_distinct, {set_weight}"
+        set_properties = f"ON CREATE SET mr.n_distinct = n_distinct, mr.score = ((n_distinct * 1.0) / source.n_subnodes) * weight, {set_weight}"
         return_count = "RETURN count(mr) AS n_rels"
 
         query = ' '.join([
