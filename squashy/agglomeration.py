@@ -387,6 +387,18 @@ class MetaRelate:
     def reset(self):
         self.db.write(f'MATCH ()-[r:{self.meta_rel}]-() DELETE r')
 
+    def get_core_edge_list(self, unfiltered=False):
+
+        match_query = f'MATCH (source:{self.core})-[r:{self.meta_rel}]->(target:{self.core})'
+        where_query = 'WHERE r.score >= $cutoff'
+        return_query = "RETURN source.id, target.id, r.weight AS weight, r.n_distinct AS n_distinct, r.score AS score"
+        query_sequence = [match_query, where_query, return_query]
+        if unfiltered:
+            query_sequence.pop(1)
+        query = ' '.join(query_sequence)
+        result = self.db.read(query, cutoff=self.cutoff_score)
+        return result
+
     @property
     def query(self):
         return self._build_query()
