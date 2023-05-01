@@ -3,7 +3,7 @@ from tqdm.auto import tqdm
 from mini_memgraph import Memgraph
 from squashy.metrics import DecomposerMetrics
 
-
+#TODO catch if graph is about to run out of nodes. elegantly end decomposition
 class KCoreIdentifier:
     def __init__(self, database: Memgraph, node_label: str, rel_label: str, core_label: str = 'CORE',
                  target_label: str = None, metrics_path=None, k: int = 2, max_cores: int = 500,
