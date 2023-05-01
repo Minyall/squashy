@@ -391,9 +391,9 @@ class MetaRelate:
     def reset(self):
         self.db.write(f'MATCH ()-[r:{self.meta_rel}]-() DELETE r')
 
-    def get_core_edge_list(self, unfiltered=False):
+    def get_core_edge_list(self, unfiltered: bool = False) -> List[Dict]:
         if not self.count_meta_relations() > 0:
-            raise Exception(f'No meta_relations of type {self.meta_rel} detected. Plese .build_ meta_relations() first.')
+            raise Exception(f'No meta_relations of type {self.meta_rel} detected. Please .build_meta_relations() first.')
         match_query = f'MATCH (source:{self.core})-[r:{self.meta_rel}]->(target:{self.core})'
         where_query = 'WHERE r.score >= $cutoff'
         return_query = "RETURN source.id AS source, target.id AS target, r.weight AS weight, r.n_distinct AS n_distinct, r.score AS score"
@@ -403,6 +403,20 @@ class MetaRelate:
         query = ' '.join(query_sequence)
         result = self.db.read(query, cutoff=self.cutoff_score)
         return result
+
+    def get_core_node_list(self, unfiltered: bool = False) -> List[Dict]:
+        if not self.count_meta_relations() > 0:
+            raise Exception(f'No meta_relations of type {self.meta_rel} detected. Please .build_meta_relations() first.')
+        if unfiltered:
+            match_query = f'MATCH (c:{self.core})'
+        else:
+            match_query = f"MATCH (c:{self.core})-[r:{self.meta_rel}]-(:{self.core}) WHERE r.score >= $cutoff WITH DISTINCT c"
+
+        return_query = 'RETURN c.id AS id, c.n_subnodes AS n_subnodes'
+        query = ' '.join([match_query, return_query])
+        result = self.db.read(query, cutoff=self.cutoff_score)
+        return result
+
 
     def count_meta_relations(self) -> int:
         return self.db.read(f'MATCH ()-[r:{self.meta_rel}]->() RETURN count(r) AS n_rels')[0]['n_rels']
