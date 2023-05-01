@@ -1,2 +1,2 @@
-from squashy.agglomeration import GraphAgglomerator
+from squashy.agglomeration import GraphAgglomerator, MetaRelate
 from squashy.decomposition import KCoreIdentifier
