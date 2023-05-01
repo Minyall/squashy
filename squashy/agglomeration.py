@@ -186,6 +186,8 @@ class GraphAgglomerator:
 
     @elegant_exit
     def agglomerate(self):
+        if self._is_resuming():
+            self._resume()
         current_assignments = {}
         hop_options = self._get_hop_options()
         n_hops = len(hop_options)
