@@ -3,7 +3,7 @@ from tqdm.auto import tqdm
 from mini_memgraph import Memgraph
 from squashy.metrics import DecomposerMetrics
 
-
+#TODO catch if graph is about to run out of nodes. elegantly end decomposition
 class KCoreIdentifier:
     def __init__(self, database: Memgraph, node_label: str, rel_label: str, core_label: str = 'CORE',
                  target_label: str = None, metrics_path=None, k: int = 2, max_cores: int = 500,
@@ -69,10 +69,21 @@ class KCoreIdentifier:
         self.metrics.cores_identified += 1
 
     def _update_min_max_degree(self):
-        self.metrics.min_degree = self.database.attr_minimum(self.node_label, self.degree_label,
-                                                             where=self.not_decomposed)
-        self.metrics.max_degree = self.database.attr_maximum(self.node_label, self.degree_label,
-                                                             where=self.not_decomposed)
+        min_degree = self.database.attr_minimum(self.node_label, self.degree_label,
+                                                where=self.not_decomposed)
+        if min_degree is None:
+            min_degree = 0
+
+        max_degree = self.database.attr_maximum(self.node_label, self.degree_label,
+                                                where=self.not_decomposed)
+
+        if max_degree is None:
+            max_degree = 0
+
+        self.metrics.min_degree = min_degree
+        self.metrics.max_degree = max_degree
+
+
 
     def _update_n_remaining(self) -> int:
         self.metrics.n_remaining = self.database.node_count(label=self.node_label, where=self.not_decomposed)
@@ -105,7 +116,9 @@ class KCoreIdentifier:
                   # bar_format='{desc}:{bar} {elapsed}<{remaining}',
                   desc=self.metrics.report()) as bar:
             bar.update(self.metrics.cores_identified)
-            while (self.metrics.min_degree < self.k) and (self.metrics.cores_identified < self.max_cores):
+            while (self.metrics.min_degree < self.k) and \
+                    (self.metrics.cores_identified < self.max_cores) and \
+                    self.metrics.n_remaining > 0:
                 self.metrics.start_timer()
                 self._prune()
                 if self.metrics.n_remaining < 1:
