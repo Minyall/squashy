@@ -9,12 +9,19 @@ class Squash:
                  db_port: int = 7687, decomposer: KCoreIdentifier = None,
                  agglomerator: GraphAgglomerator = None, meta_relator: MetaRelate = None):
         self.db = Memgraph(address=db_address, port=db_port)
-        self.decomposer = decomposer if not None else KCoreIdentifier(self.db, node_label, relation_label)
-        self.agglomerator = agglomerator if not None else GraphAgglomerator(self.db, node_label,
-                                                                            relation_label,
-                                                                            weight=weight_label)
 
-        self.meta_relator = meta_relator if not None else MetaRelate(self.db, node_label, relation_label,
+        self.decomposer = decomposer
+        self.agglomerator = agglomerator
+        self.meta_relator = meta_relator
+
+        if self.decomposer is None:
+            self.decomposer = KCoreIdentifier(self.db, node_label, relation_label)
+        if self.agglomerator is None:
+            self.agglomerator = GraphAgglomerator(self.db, node_label,
+                              relation_label,
+                              weight=weight_label)
+        if self.meta_relator is None:
+            self.meta_relator = MetaRelate(self.db, node_label, relation_label,
                                                                      weight=weight_label)
 
     def reset(self):
