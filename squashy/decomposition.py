@@ -105,7 +105,9 @@ class KCoreIdentifier:
                   # bar_format='{desc}:{bar} {elapsed}<{remaining}',
                   desc=self.metrics.report()) as bar:
             bar.update(self.metrics.cores_identified)
-            while (self.metrics.min_degree < self.k) and (self.metrics.cores_identified < self.max_cores):
+            while (self.metrics.min_degree < self.k) and \
+                    (self.metrics.cores_identified < self.max_cores) and \
+                    self.metrics.n_remaining > 0:
                 self.metrics.start_timer()
                 self._prune()
                 if self.metrics.n_remaining < 1:
