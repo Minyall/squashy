@@ -69,10 +69,21 @@ class KCoreIdentifier:
         self.metrics.cores_identified += 1
 
     def _update_min_max_degree(self):
-        self.metrics.min_degree = self.database.attr_minimum(self.node_label, self.degree_label,
-                                                             where=self.not_decomposed)
-        self.metrics.max_degree = self.database.attr_maximum(self.node_label, self.degree_label,
-                                                             where=self.not_decomposed)
+        min_degree = self.database.attr_minimum(self.node_label, self.degree_label,
+                                                where=self.not_decomposed)
+        if min_degree is None:
+            min_degree = 0
+
+        max_degree = self.database.attr_maximum(self.node_label, self.degree_label,
+                                                where=self.not_decomposed)
+
+        if max_degree is None:
+            max_degree = 0
+
+        self.metrics.min_degree = min_degree
+        self.metrics.max_degree = max_degree
+
+
 
     def _update_n_remaining(self) -> int:
         self.metrics.n_remaining = self.database.node_count(label=self.node_label, where=self.not_decomposed)
