@@ -29,7 +29,7 @@ class Squash:
         self.agglomerator.reset()
         self.decomposer.reset()
 
-    def squash(self, max_cores: int = 500, k: int = 2, min_hops: int = None, max_hops: int = None):
+    def squash_graph(self, max_cores: int = 500, k: int = 2, min_hops: int = None, max_hops: int = None):
         self.decomposer.max_cores = max_cores
         self.decomposer.k = k
         if min_hops is not None:
