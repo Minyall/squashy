@@ -39,14 +39,9 @@ class GraphAgglomerator:
             self._left_endpoint = '<-'
         elif orientation == 'out':
             self._right_endpoint = '->'
-
-        self.cores = [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
         self.total_nodes = self.calculate_graph_size()
 
-        if self._is_resuming():
-            self._resume()
-        else:
-            self._initialize()
+
 
     def _is_resuming(self) -> bool:
         return self.metrics.pass_ > 0
@@ -64,9 +59,8 @@ class GraphAgglomerator:
         return report_and_exit
 
     def _initialize(self):
+        self._check_label(self.core_label)
         self.current_hop = 0
-        self.set_hop_range(min_hops=self._original_hop_options[0],
-                           max_hops=self._original_hop_options[1])
         self.final_assignments = {c: c for c in self.cores}
         self.final_assignments = self._reshape_assignments(self.final_assignments)
         self.final_assignments = self._add_distance(self.final_assignments)
@@ -77,7 +71,10 @@ class GraphAgglomerator:
         complete = self.list_complete_hops()
         hop_options = self._get_hop_options()
         remaining_hops = [hop for hop in hop_options if hop not in complete]
-        start_hop = min(remaining_hops)
+        if len(remaining_hops) > 0:
+            start_hop = min(remaining_hops)
+        else:
+            start_hop = 0
         self.set_minimum_hop(start_hop)
         self.drop_incomplete_hop_rels(start_hop)
         self.drop_incomplete_hop_metrics(start_hop)
@@ -124,7 +121,6 @@ class GraphAgglomerator:
             raise ValueError(f'No {label} nodes identified.')
 
     def set_core_label(self, label: str):
-        self._check_label(label)
         self._set_label('_core_label', label)
 
     def set_represents_label(self, label: str):
@@ -188,10 +184,14 @@ class GraphAgglomerator:
     def agglomerate(self):
         if self._is_resuming():
             self._resume()
+        else:
+            self._initialize()
         current_assignments = {}
         hop_options = self._get_hop_options()
         n_hops = len(hop_options)
-        with tqdm(total=len(self.cores)*n_hops) as bar:
+        bar_total = len(self.cores) * n_hops
+
+        with tqdm(total=bar_total) as bar:
             for hop in hop_options:
                 self.current_hop = hop
                 for i, core in enumerate(self.cores, start=1):
@@ -236,7 +236,6 @@ class GraphAgglomerator:
     def reset(self):
         self.database.wipe_relationships(self._represents_label)
         self.metrics = self.metrics.reset_metrics()
-        self._initialize()
 
     def _calculate_degree(self, force=False):
         if not self.degree_attr_exists or force:
@@ -314,6 +313,10 @@ class GraphAgglomerator:
     @property
     def minimum_degree(self):
         return self._minimum_degree
+
+    @property
+    def cores(self):
+        return [r['id'] for r in self.database.read(f'MATCH (c:{self._core_label}) RETURN c.id AS id')]
 
 # TODO add option to choose whether to score by ratio of distinct users, or simply number of distinct users.
 class MetaRelate:
