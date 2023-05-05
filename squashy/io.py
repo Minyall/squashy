@@ -29,7 +29,7 @@ class DataImporter:
 
     def db_is_empty(self):
         res = self.db.read('MATCH (n) RETURN n LIMIT 1')
-        return len(res) == 0
+        return res is None
 
     def clear_database(self):
         self.db.write('MATCH (n) DETACH DELETE n')
