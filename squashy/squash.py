@@ -79,11 +79,11 @@ class Squash:
             self.decomposer = KCoreIdentifier(self.db, node_label, relation_label)
         if self.agglomerator is None:
             self.agglomerator = GraphAgglomerator(self.db, node_label,
-                              relation_label,
-                              weight=weight_label)
+                                                  relation_label,
+                                                  weight=weight_label)
         if self.meta_relator is None:
             self.meta_relator = MetaRelate(self.db, node_label, relation_label,
-                                                                     weight=weight_label)
+                                           weight=weight_label)
 
     def reset(self):
         self.meta_relator.reset()
