@@ -5,21 +5,21 @@ from mini_memgraph import Memgraph
 
 class DataImporter:
     """
-     A class for quick insertion of basic graph data into the Memgraph backend database. A convenience class for quick
-     data insertion of simple graph data.
+    A class for quick insertion of basic graph data into the Memgraph backend database. A convenience class for quick
+    data insertion of simple graph data.
 
-     ...
+    ...
 
-     Attributes
-     ----------
-     node_label : str
+    Attributes
+    ----------
+    node_label : str
         The name of the nodes in your dataset.
     edge_label: str
         The name of the edges in your dataset
     db: mini_memgraph.Memgraph
         Database interface. Can be accessed directly for .read() and .write() functionality with custom Cypher queries.
 
-     """
+    """
 
     node_label: str
     edge_label: str
@@ -86,6 +86,7 @@ class DataImporter:
         Returns
         -------
         None
+            No value returned
         """
 
         if not isinstance(node_list, list):
@@ -108,6 +109,7 @@ class DataImporter:
         Returns
         -------
         None
+            No value returned
         """
         if not isinstance(edge_list, list) or not isinstance(edge_list[0], tuple) or not len(edge_list[0]) > 1:
             raise TypeError('edge_list must be a list of Tuples of len 2 or 3 if including weight')
@@ -130,6 +132,7 @@ class DataImporter:
         Returns
         -------
         None
+            No value returned
         """
         node_list = set()
         node_list.update([record[0] for record in edge_tuples])
@@ -146,6 +149,7 @@ class DataImporter:
         Returns
         -------
         str
+            A string describing the current number of nodes and edges in the database.
         """
         n_nodes = self.db.node_count(self.node_label)
         n_rels = self.db.read(f'MATCH ()-[r:{self.edge_label}]-() WITH DISTINCT r RETURN count(r) AS n_rels')[0][
@@ -160,6 +164,7 @@ class DataImporter:
         Returns
         -------
         None
+            No value returned
         """
         self.db.write('MATCH (n) DETACH DELETE n')
 
