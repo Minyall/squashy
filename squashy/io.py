@@ -74,6 +74,20 @@ class DataImporter:
         self.db.set_constraint(node_label, 'id')
 
     def load_nodes(self, node_list: List):
+        """
+        Loads a list of unique node ids into the Memgraph database.
+        ...
+
+        Parameters
+        ----------
+        node_list : list
+            A list of node ids. Must be unique.
+
+        Returns
+        -------
+        None
+        """
+
         if not isinstance(node_list, list):
             raise TypeError('node_list must be a list of node ids')
         if len(node_list) > len(set(node_list)):
