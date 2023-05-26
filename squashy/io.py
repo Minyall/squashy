@@ -139,6 +139,14 @@ class DataImporter:
         self.load_edges(edge_tuples)
 
     def report(self):
+        """
+        Reports on the number of nodes and edges currently in the database.
+        ...
+
+        Returns
+        -------
+        str
+        """
         n_nodes = self.db.node_count(self.node_label)
         n_rels = self.db.read(f'MATCH ()-[r:{self.edge_label}]-() WITH DISTINCT r RETURN count(r) AS n_rels')[0][
             'n_rels']
