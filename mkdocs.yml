@@ -1,0 +1,47 @@
+site_name: Squashy
+repo_url: https://github.com/Minyall/squashy
+watch:
+- squashy
+theme:
+  features:
+    - toc.integrate
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sticky
+    - navigation.sections
+  name: material
+  icon:
+    logo: material/graph-outline
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: black
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+plugins:
+  - search
+  - social
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+
+markdown_extensions:
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - API:
+    - Squash: Squash.md
+    - DataImporter: DataImporter.md
