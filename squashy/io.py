@@ -118,6 +118,19 @@ class DataImporter:
                             source_id_label='id', target_id_label='id')
 
     def load_from_edge_list(self, edge_tuples: List[Tuple]):
+        """
+        A convenience method that loads both nodes and edges from a single edge list.
+        ...
+
+        Parameters
+        ----------
+        edge_tuples : list
+            A list of edge tuples structured as (source, target) or (source, target, weight)
+
+        Returns
+        -------
+        None
+        """
         node_list = set()
         node_list.update([record[0] for record in edge_tuples])
         node_list.update([record[1] for record in edge_tuples])
