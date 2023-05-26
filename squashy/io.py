@@ -15,11 +15,13 @@ class DataImporter:
             self.db = database
 
         if not self._db_is_empty():
-            if not wipe_db:
-                raise Exception(
-                    f'Your Memgraph instance already has data in it. Pass wipe_db=True to clear. Warning this will destroy all existing data in your Memgraph instance at {address=} {port=}')
-            else:
+            if wipe_db:
                 self.clear_database()
+            else:
+                raise Exception(
+                    f'Your Memgraph instance already has data in it. Pass wipe_db=True to clear. '
+                    f'Warning this will destroy all existing data in your Memgraph instance at {address=} {port=}')
+
         self.node_label = self._check_label(node_label)
         self.edge_label = self._check_label(edge_label)
         self.weight_label = weight_label
