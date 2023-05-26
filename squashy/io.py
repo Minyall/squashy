@@ -96,6 +96,19 @@ class DataImporter:
         self.db.write_nodes(data, label=self.node_label, id_val='id')
 
     def load_edges(self, edge_list: List[Tuple]):
+        """
+        Loads a list of edge tuples into the Memgraph database, with an optional weight.
+        ...
+
+        Parameters
+        ----------
+        edge_list : list
+            A list of edge tuples structured as (source, target) or (source, target, weight)
+
+        Returns
+        -------
+        None
+        """
         if not isinstance(edge_list, list) or not isinstance(edge_list[0], tuple) or not len(edge_list[0]) > 1:
             raise TypeError('edge_list must be a list of Tuples of len 2 or 3 if including weight')
         data = self._prep_edge_list(edge_list)
