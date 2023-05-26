@@ -121,9 +121,9 @@ class Squash:
 
         Examples
         --------
-        squasher = Squash('NODE', 'RELATION')
-        squasher.get_core_edge_list()
-        >>>> [{'source': 'fred', 'target':'joan', 'weight': 6, 'n_distinct':4, 'score': 0.24}...]
+        >>> squasher = Squash('NODE', 'RELATION')
+        >>> squasher.get_core_edge_list()
+        >>> [{'source': 'fred', 'target':'joan', 'weight': 6, 'n_distinct':4, 'score': 0.24}...]
 
 
         Returns
