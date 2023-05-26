@@ -14,39 +14,19 @@ class DataImporter:
         else:
             self.db = database
 
-        if not self.db_is_empty():
+        if not self._db_is_empty():
             if not wipe_db:
-                raise Exception(f'Your Memgraph instance already has data in it. Pass wipe_db=True to clear. Warning this will destroy all existing data in your Memgraph instance at {address=} {port=}')
+                raise Exception(
+                    f'Your Memgraph instance already has data in it. Pass wipe_db=True to clear. Warning this will destroy all existing data in your Memgraph instance at {address=} {port=}')
             else:
                 self.clear_database()
-        self.node_label = self.check_label(node_label)
-        self.edge_label = self.check_label(edge_label)
+        self.node_label = self._check_label(node_label)
+        self.edge_label = self._check_label(edge_label)
         self.weight_label = weight_label
 
         self.db.set_index(node_label)
         self.db.set_index(node_label, 'id')
         self.db.set_constraint(node_label, 'id')
-
-    def db_is_empty(self):
-        res = self.db.read('MATCH (n) RETURN n LIMIT 1')
-        return res is None
-
-    def clear_database(self):
-        self.db.write('MATCH (n) DETACH DELETE n')
-
-
-    def _prep_node_list(self, nodes: List):
-        return [{'id': n} for n in nodes]
-
-    def _prep_edge_list(self, edges: List):
-        if self.weight_label is not None:
-            prepped = [{'source': record[0],
-                        'target': record[1],
-                        self.weight_label: record[2]} for record in edges]
-        else:
-            prepped = [{'source': record[0],
-                        'target': record[1]} for record in edges]
-        return prepped
 
     def load_nodes(self, node_list: List):
         if not isinstance(node_list, list):
@@ -65,15 +45,6 @@ class DataImporter:
                             on_duplicate_edges='increment', add_attributes=[self.weight_label],
                             source_id_label='id', target_id_label='id')
 
-    def check_label(self, label: str):
-        if not label.isupper():
-            raise Exception(f'Node or edge labels should be UPPERCASE. {label=}')
-        return label
-
-    def set_node_label(self, label: str):
-        self._set_label(label, '_node_label')
-
-
     def load_from_edge_list(self, edge_tuples: List[Tuple]):
         node_list = set()
         node_list.update([record[0] for record in edge_tuples])
@@ -88,3 +59,30 @@ class DataImporter:
             'n_rels']
         return f"Database currently has {n_nodes:,} {self.node_label} nodes, and {n_rels:,} {self.edge_label} edges."
 
+    def clear_database(self):
+        self.db.write('MATCH (n) DETACH DELETE n')
+
+    def _db_is_empty(self):
+        res = self.db.read('MATCH (n) RETURN n LIMIT 1')
+        return res is None
+
+    def _prep_node_list(self, nodes: List):
+        return [{'id': n} for n in nodes]
+
+    def _prep_edge_list(self, edges: List):
+        if self.weight_label is not None:
+            prepped = [{'source': record[0],
+                        'target': record[1],
+                        self.weight_label: record[2]} for record in edges]
+        else:
+            prepped = [{'source': record[0],
+                        'target': record[1]} for record in edges]
+        return prepped
+
+    def _check_label(self, label: str):
+        if not label.isupper():
+            raise Exception(f'Node or edge labels should be UPPERCASE. {label=}')
+        return label
+
+    def _set_node_label(self, label: str):
+        self._set_label(label, '_node_label')
