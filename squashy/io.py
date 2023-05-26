@@ -153,6 +153,14 @@ class DataImporter:
         return f"Database currently has {n_nodes:,} {self.node_label} nodes, and {n_rels:,} {self.edge_label} edges."
 
     def clear_database(self):
+        """
+        Wipes the connected Memgraph instance of all data. Irreversible.
+        ...
+
+        Returns
+        -------
+        None
+        """
         self.db.write('MATCH (n) DETACH DELETE n')
 
     def _db_is_empty(self):
