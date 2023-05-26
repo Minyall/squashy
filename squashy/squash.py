@@ -23,23 +23,6 @@ class Squash:
     meta_relator : MetaRelate
         The MetaRelate class used in the compression process. Use to access metrics and associated attributes.
 
-    Methods
-    ----------
-    squash_graph(max_cores=500, k=2, min_hops=None, max_hops=None)
-        Generates the compressed core graph. Steps through each stage of core identification,
-         assignment of representatives and the generation of meta-relations.
-
-    get_core_edge_list()
-        Returns a list of dictionary edges of format {source, target, **weight values}.
-        Equivalent to MetaRelate.get_core_edge_list()
-
-    get_core_node_list()
-        Returns a list of dictionary node records of format {id, n_subnodes}
-        where n_subnodes is the number of node_label nodes represented by each core node.
-        Equivalent to MetaRelate.get_core_node_list()
-    reset()
-        Wipes all core graph metrics and assignments from the database ready to re-run compression.
-
     """
 
     decomposer: KCoreIdentifier
