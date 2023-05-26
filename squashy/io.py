@@ -4,6 +4,26 @@ from mini_memgraph import Memgraph
 
 
 class DataImporter:
+    """
+     A class for quick insertion of basic graph data into the Memgraph backend database. A convenience class for quick
+     data insertion of simple graph data.
+
+     ...
+
+     Attributes
+     ----------
+     node_label : str
+        The name used to label the nodes in your dataset. Use this to provide a descriptive name. For example USER, ITEM,
+        MESSAGE etc. Should be uppercase.
+    edge_label: str
+        The name used to label the relations between nodes in your dataset. Use this to provide a descriptive name that
+        explains how nodes relate to one another. For example REPLIES_TO, LINKS_TO, BOUGHT_WITH etc. Should be uppercase.
+    db: mini_memgraph.Memgraph
+        Database interface. Can be accessed directly for .read() and .write() functionality with custom Cypher queries.
+
+     """
+
+
     node_label: str
     edge_label: str
 
