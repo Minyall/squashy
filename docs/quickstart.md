@@ -24,7 +24,8 @@ DATA_PATH = 'soc-redditHyperlinks-body.tsv'
 
 edge_tuples = []
 
-with pd.read_csv(DATA_PATH, usecols=['SOURCE_SUBREDDIT','TARGET_SUBREDDIT'], sep='\t', chunksize=10000) as reader:
+with pd.read_csv(DATA_PATH, usecols=['SOURCE_SUBREDDIT','TARGET_SUBREDDIT'],
+                 sep='\t', chunksize=10000) as reader:
     for chunk in reader:
         edges = chunk.to_records(index=False).tolist()
         edge_tuples.extend(edges)
