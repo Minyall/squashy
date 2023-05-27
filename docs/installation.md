@@ -31,4 +31,4 @@ docker run -it -p 7687:7687 -p 7444:7444 -p 3000:3000 memgraph/memgraph-platform
 Once installation is complete, Memgraph will be running in your terminal. You can check that it is running
 by visiting `localhost:3000` in your web browser to view the [Memgraph Lab](https://memgraph.com/docs/memgraph-lab).
 
-Further information can be fo
+Further information about working with Memgraph can be found in [their documentation](https://memgraph.com/docs/memgraph), however you can use Squashy without directly engaging with Memgraph.
