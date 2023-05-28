@@ -58,8 +58,68 @@ Once the data is loaded we can ask for the loader to `.report()` and check that 
 >>> loader.report()
 'Database currently has 35,776 SUBREDDIT nodes, and 137,821 LINKS_TO edges.'
 ```
+## 2. Compressing the Graph
+Now we have the data loaded, we are ready to compress it. The goal is to take our raw graph of 35K nodes and 100K+ edges 
+and to generate a new graph that represents the latent structure of the original. 
+First we need to create an instance of the `Squash` class and tell it what nodes, relations and weight property it should 
+use. We also tell it the `db_address` and `db_port` for demonstration purposes, however if no values are given, it will
+use `localhost:7687` as the default address.
 
+```python
+from squashy import Squash
 
+squasher = Squash(node_label='SUBREDDIT', relation_label='LINKS_TO', weight_label='weight', 
+                  db_address='localhost', db_port=7687)
+
+```
+In the next step we initiate the compression process. It may take some time to complete but progress bars will provide 
+some insight into the compression process. Whilst it is best to allow the process to run to completion, it is resumable
+should an interruption occur. 
+
+We limit the maximum number of cores to 400 using `max_cores`, specify that during the decomposition stage a core will be identified
+once all remaining nodes have a degree of `k`, and that during the core assignment phase nodes will be assigned a core that is
+at most two hops away (`max_hops`).
+
+```python
+squasher.squash_graph(max_cores=400, k=2, max_hops=2)
+```
+
+## 3. Examining the compressed graph
+Once the process is complete we can examine our compressed graph. Note that Squashy is non-destructive and the original graph data is still intact in the database.
+
+```python
+nodes = squasher.get_core_node_list()
+edges = squasher.get_core_edge_list()
+```
+```python
+>>> len(nodes)
+221
+```
+```python
+>>> len(edges)
+330
+```
+```python
+>>> nodes[:5]
+[{'id': 'suggestalaptop', 'n_subnodes': 16},
+ {'id': 'buildapc', 'n_subnodes': 159},
+ {'id': 'windows10', 'n_subnodes': 56},
+ {'id': 'pcmasterrace', 'n_subnodes': 103},
+ {'id': 'sysadmin', 'n_subnodes': 128}]
+```
+```python
+>>> edges[:2]
+[{'source': 'suggestalaptop',
+  'target': 'techsupport',
+  'weight': 22,
+  'n_distinct': 8,
+  'score': 11.0},
+ {'source': 'buildapc',
+  'target': 'techsupport',
+  'weight': 341,
+  'n_distinct': 72,
+  'score': 154.41509433962264}]
+```
 ## Acknowledgements
 Thanks to the authors for their contribution of the Subreddit Hyperlink Network dataset. 
 ```
