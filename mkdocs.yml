@@ -4,6 +4,7 @@ watch:
 - squashy
 theme:
   features:
+    - content.code.copy
     - toc.integrate
     - navigation.instant
     - navigation.tabs
