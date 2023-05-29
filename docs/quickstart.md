@@ -120,6 +120,47 @@ edges = squasher.get_core_edge_list()
   'n_distinct': 72,
   'score': 154.41509433962264}]
 ```
+
+## 4. Core Exploration
+Squashy just handles the compression and provides you a node and edge list representation of the new core graph. 
+The original data remains in the Memgraph Database so you can always extend your analysis by querying the database manually.
+See below for a number of examples of what you might do with your Squashed graoh and to check the quality of the representation.
+
+!!! note
+    For this section you'll need some additional dependencies:
+
+    - [NetworkX](https://networkx.org/)
+    - [Netwulf](https://netwulf.readthedocs.io/en/latest/)
+    - [Wordcloud](https://amueller.github.io/word_cloud/)
+
+    You can install them via PyPi
+
+    ```sh
+    pip install netwulf networkx wordcloud
+    ```
+### Visualise the Core Network
+One of the key benefits of compression is allowing you to get a qualitative sense of your network structure via visualisation.
+For this we'll use `Netwulf` which relies on NetworkX's `Graph` objects.
+
+```python
+import pandas as pd
+import networkx as nx
+
+edge_df = pd.DataFrame(edges)
+
+G = nx.from_pandas_edgelist(edge_df, edge_attr=True, create_using=nx.DiGraph)
+
+```
+Now we can visualise using Netwulf.
+
+!!! note
+    When you're done visualising in Netwulf ensure you press the 'Post to Python' button to resume your code.
+
+```python
+import netwulf as nw
+fig, config = nw.visualize(G)
+```
+![Subreddit Core Graph Visual](images/subreddit_core_network.png){: style="height:150px;width:150px"}
 ## Acknowledgements
 Thanks to the authors for their contribution of the Subreddit Hyperlink Network dataset. 
 ```
